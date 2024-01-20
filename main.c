@@ -18,9 +18,119 @@ int possible_tile_x_locations[MAX_POSSIBLE_TILE_X_INDEX + 1] = {0, 2, 4, 7, 9, 1
 tile_t tiles[255]; 
 int tile_amount = 0;
 
+int user_input;
 int a_p = 0, s_p = 0, d_p = 0, j_p = 0, k_p = 0, l_p = 0;
 
+pthread_mutex_t input_lock = PTHREAD_MUTEX_INITIALIZER;
 
+int lives = 3;
+char lives_str[255];
+
+void set_lives(int l)
+{
+    lives = l;
+    sprintf(lives_str, "lives: %d", lives);
+}
+
+tile_t *get_tile_at_location(int x, int y)
+{
+    for (int i = 0; i < tile_amount; i++)
+    {
+        tile_t *tile = tiles + i;
+
+        if (!tile->active) continue;
+
+        if (tile->x == x && tile->y == y)
+        {
+            return tile;
+        }
+    }
+    return NULL;
+}
+
+void get_user_input()
+{
+    tile_t *tile;
+    while (1)
+    {
+        pthread_mutex_lock(&input_lock);
+        user_input = getch();
+        if (user_input != ERR)
+        {
+            switch (user_input)
+            {
+            case 'a':
+                tile = get_tile_at_location(0, GAME_BOARD_H - 1);
+                if (tile == NULL)
+                {
+                    set_lives(lives -1);
+                }
+                else{
+                    tile->active = 0;
+                }
+                break;
+            case 's':
+                tile = get_tile_at_location(2, GAME_BOARD_H - 1);
+                if (tile == NULL)
+                {
+                    set_lives(lives -1);
+                }
+                else{
+                    tile->active = 0;
+                }
+                break;
+            case 'd':
+                tile = get_tile_at_location(4, GAME_BOARD_H - 1);
+                if (tile == NULL)
+                {
+                    set_lives(lives -1);
+                }
+                else{
+                    tile->active = 0;
+                }
+                break;
+            case 'j':
+                tile = get_tile_at_location(7, GAME_BOARD_H - 1);
+                if (tile == NULL)
+                {
+                    set_lives(lives -1);
+                }
+                else{
+                    tile->active = 0;
+                }
+                break;
+            case 'k':
+                tile = get_tile_at_location(9, GAME_BOARD_H - 1);
+                if (tile == NULL)
+                {
+                    set_lives(lives -1);
+                }
+                else{
+                    tile->active = 0;
+                }
+                k_p = 1;
+                break;
+            case 'l':
+                tile = get_tile_at_location(11, GAME_BOARD_H - 1);
+                if (tile == NULL)
+                {
+                    set_lives(lives -1);
+                }
+                else{
+                    tile->active = 0;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+        else
+        {
+            a_p = 0, s_p = 0, d_p = 0, j_p = 0, k_p = 0, l_p = 0;
+        }
+        pthread_mutex_unlock(&input_lock);
+    }
+}
 
 void spawn_new_tile()
 {
@@ -61,9 +171,11 @@ void update_tiles()
 
         ++tile->y;
 
-        if (tile->y >= GAME_BOARD_H - 1)
+        if (tile->y >= GAME_BOARD_H)
         {
             tile->active = 0;
+            set_lives(lives - 1);
+            continue;
         }
 
         mvaddch(t_y, t_x, '*');
@@ -104,55 +216,24 @@ int main()
     curs_set(0);
 
     srand(time(NULL));
+    
+    pthread_t input_thread_id;
+    pthread_create(&input_thread_id, NULL, get_user_input, NULL);
 
-    int user_input;
+    set_lives(3);
 
     while (1)
     {
-        //print_game_board(game_board);
-        //update_tiles();
-        //spawn_new_tile();
-
-        //printw("%d, %d, %d, %d, %d, %d", a_p, s_p, d_p, j_p, k_p, l_p);
-        //refresh();
+        print_game_board(game_board);
+        update_tiles();
+        spawn_new_tile();
+        mvaddstr(GAME_BOARD_H, 0, lives_str);
 
         usleep(1000000 * refresh_rate);
-
-        user_input = getch();
-        if (user_input != ERR)
-        {
-            switch (user_input)
-            {
-            case 'a':
-                a_p = 1;
-                break;
-            case 's':
-                s_p = 1;
-                printw("s pressed\n");
-                break;
-            case 'd':
-                d_p = 1;
-                break;
-            case 'j':
-                j_p = 1;
-                break;
-            case 'k':
-                k_p = 1;
-                break;
-            case 'l':
-                l_p = 1;
-                break;
-            default:
-                break;
-            }
-        }
-        else
-        {
-            a_p = 0, s_p = 0, d_p = 0, j_p = 0, k_p = 0, l_p = 0;
-        }
-        refresh();
-        //erase();
+        
+        erase();
     }
+    pthread_join(input_thread_id, NULL);
     endwin();
 
     return 0;

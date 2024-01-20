@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall
+CFLAGS = 
 LIBS = -lncurses
 
 SRC = main.c  # Add more source files if needed
