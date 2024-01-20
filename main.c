@@ -14,14 +14,14 @@ typedef struct {
     int active;
 } tile_t;
 
+int game_quit = 0;
+
 int possible_tile_x_locations[MAX_POSSIBLE_TILE_X_INDEX + 1] = {0, 2, 4, 7, 9, 11};
 tile_t tiles[255]; 
 int tile_amount = 0;
 
 int user_input;
 int a_p = 0, s_p = 0, d_p = 0, j_p = 0, k_p = 0, l_p = 0;
-
-pthread_mutex_t input_lock = PTHREAD_MUTEX_INITIALIZER;
 
 int lives = 3;
 char lives_str[255];
@@ -53,12 +53,14 @@ void get_user_input()
     tile_t *tile;
     while (1)
     {
-        pthread_mutex_lock(&input_lock);
         user_input = getch();
         if (user_input != ERR)
         {
             switch (user_input)
             {
+            case 'q':
+                game_quit = 1;
+                return;
             case 'a':
                 tile = get_tile_at_location(0, GAME_BOARD_H - 1);
                 if (tile == NULL)
@@ -128,7 +130,6 @@ void get_user_input()
         {
             a_p = 0, s_p = 0, d_p = 0, j_p = 0, k_p = 0, l_p = 0;
         }
-        pthread_mutex_unlock(&input_lock);
     }
 }
 
@@ -191,7 +192,7 @@ void print_game_board(char game_board[GAME_BOARD_H][GAME_BOARD_W])
     }
 }
 
-int main()
+int main(int argc, char **argv)
 {
     char game_board[GAME_BOARD_H][GAME_BOARD_W] = {
         ". . .  . . .",
@@ -204,8 +205,11 @@ int main()
         "# # #  # # #"};
 
     // some initialization
-
-    float refresh_rate = 1;
+    int refresh_rate = 1000000;
+    if (argc >= 1)
+    {
+        refresh_rate = atoi(argv[1]);
+    }
 
     initscr();
     raw();
@@ -222,14 +226,14 @@ int main()
 
     set_lives(3);
 
-    while (1)
+    while (!game_quit)
     {
         print_game_board(game_board);
         update_tiles();
         spawn_new_tile();
         mvaddstr(GAME_BOARD_H, 0, lives_str);
 
-        usleep(1000000 * refresh_rate);
+        usleep(refresh_rate);
         
         erase();
     }
